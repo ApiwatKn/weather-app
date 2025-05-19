@@ -1,103 +1,160 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import provinces from "../../data/provinces";
+import { getWeatherData } from "../../utils/weatherApi";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [selectedCity, setSelectedCity] = useState("ขอนแก่น");
+  const [weather, setWeather] = useState(null);
+  const weatherContainerRef = useRef(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    async function fetchData() {
+      try {
+        const data = await getWeatherData(selectedCity);
+        console.log("Weather data:", data);
+        setWeather(data);
+      } catch (error) {
+        console.error("โหลดข้อมูลล้มเหลว:", error.message);
+        setWeather(null);
+      }
+    }
+    fetchData();
+  }, [selectedCity]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (weatherContainerRef.current) {
+        const scrollY = window.scrollY;
+        // Subtle parallax effect: move container up/down by 10% of scroll distance
+        const offset = scrollY * 0.1;
+        // Shift right by adjusting translate-x (base centering is handled by left-[60%])
+        weatherContainerRef.current.style.transform = `translate(-50%, calc(-50% + ${offset}px))`;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // ✅ ใช้ภาพพื้นหลังเดียวสำหรับทุกจังหวัด ควรเป็นภาพความละเอียดสูง (เช่น 1920x1080)
+  function getProvinceImage() {
+    const url = `/images/provinces/common-background.jpg`;
+    console.log("Background URL:", url);
+    return url;
+  }
+
+  // ✅ แปลคำอธิบายสภาพอากาศเป็นภาษาไทย
+  function translateWeatherDescription(description) {
+    const translations = {
+      "clear sky": "ท้องฟ้าแจ่มใส",
+      "few clouds": "มีเมฆบางส่วน",
+      "scattered clouds": "เมฆกระจาย",
+      "broken clouds": "เมฆครึ้ม",
+      "overcast clouds": "เมฆเต็มท้องฟ้า",
+      "light rain": "ฝนตกเล็กน้อย",
+      "moderate rain": "ฝนตกปานกลาง",
+      "heavy intensity rain": "ฝนตกหนัก",
+      "thunderstorm": "พายุฝนฟ้าคะนอง",
+      "snow": "หิมะ",
+      "mist": "หมอก",
+      "fog": "หมอกหนา",
+    };
+    return translations[description.toLowerCase()] || description;
+  }
+
+  return (
+    <div className="flex flex-col md:flex-row min-h-screen">
+      {/* Sidebar */}
+      <aside className="w-full md:w-1/4 bg-gradient-to-b from-blue-600 to-blue-800 p-6 shadow-lg">
+        <h2 className="text-2xl font-extrabold mb-6 text-center text-white tracking-tight">
+          จังหวัดภาคอีสาน
+        </h2>
+        <ul className="space-y-3">
+          {provinces.map((province) => (
+            <li
+              key={province}
+              onClick={() => setSelectedCity(province)}
+              className={`cursor-pointer px-4 py-3 rounded-lg text-center transition-all duration-300 ${
+                selectedCity === province
+                  ? "bg-white text-blue-800 font-semibold shadow-md"
+                  : "bg-gray-800 bg-opacity-50 text-white hover:bg-blue-400 hover:shadow-md"
+              }`}
+            >
+              {province}
+            </li>
+          ))}
+        </ul>
+      </aside>
+
+      {/* Main Content */}
+      <main
+        className="flex-1 bg-center bg-no-repeat text-white min-h-screen relative"
+        style={{
+          backgroundImage: `url(${getProvinceImage()})`,
+          backgroundColor: "#4b5e8e",
+          backgroundSize: "cover",
+          imageRendering: "auto",
+        }}
+      >
+        <div
+          ref={weatherContainerRef}
+          className="absolute top-1/2 left-[60%] -translate-x-1/2 -translate-y-1/2 bg-transparent p-8 rounded-2xl shadow-xl max-w-2xl w-full z-10 animate-fade-in transition-transform duration-300"
+        >
+          <h1 className="text-4xl font-bold mb-6 text-center text-blue-100">
+            สภาพอากาศ: {selectedCity}
+          </h1>
+
+          {weather ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-lg">
+              <div className="bg-gray-900 bg-opacity-20 p-4 rounded-lg shadow-md">
+                <p className="flex items-center">
+                  <span className="mr-2">🌡️</span>
+                  <span className="font-semibold">อุณหภูมิ:</span> {weather.main.temp.toFixed(1)} °C
+                </p>
+                <p className="flex items-center">
+                  <span className="mr-2">🔺</span>
+                  <span className="font-semibold">สูงสุด:</span> {weather.main.temp_max.toFixed(1)} °C
+                </p>
+                <p className="flex items-center">
+                  <span className="mr-2">🔻</span>
+                  <span className="font-semibold">ต่ำสุด:</span> {weather.main.temp_min.toFixed(1)} °C
+                </p>
+              </div>
+              <div className="bg-gray-900 bg-opacity-20 p-4 rounded-lg shadow-md">
+                <p className="flex items-center">
+                  <span className="mr-2">🌤️</span>
+                  <span className="font-semibold">สภาพอากาศ:</span>{" "}
+                  {translateWeatherDescription(weather.weather[0].description)}
+                </p>
+                <p className="flex items-center">
+                  <span className="mr-2">💨</span>
+                  <span className="font-semibold">ความเร็วลม:</span> {weather.wind.speed} m/s
+                </p>
+                <p className="flex items-center">
+                  <span className="mr-2">📍</span>
+                  <span className="font-semibold">เมือง:</span> {selectedCity}
+                </p>
+              </div>
+              <div className="bg-gray-900 bg-opacity-20 p-4 rounded-lg shadow-md sm:col-span-2">
+                <p className="flex items-center">
+                  <span className="mr-2">🌅</span>
+                  <span className="font-semibold">พระอาทิตย์ขึ้น:</span>{" "}
+                  {new Date(weather.sys.sunrise * 1000).toLocaleTimeString("th-TH")}
+                </p>
+                <p className="flex items-center">
+                  <span className="mr-2">🌇</span>
+                  <span className="font-semibold">พระอาทิตย์ตก:</span>{" "}
+                  {new Date(weather.sys.sunset * 1000).toLocaleTimeString("th-TH")}
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-center text-blue-200 animate-pulse">กำลังโหลดข้อมูล...</p>
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
